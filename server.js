@@ -231,15 +231,15 @@
     // 1. Your 10 Webshare Proxies loaded in
     const PROXIES = [
         'http://cewyuwxq:8erdzea2m635@38.154.203.95:5863',
-        'http://cewyuwxq:8erdzea2m635@198.105.121.200:6462',
-        'http://cewyuwxq:8erdzea2m635@64.137.96.74:6641',
+        'http://cewyuwxq:8erdzea2m635@64.137.96.74:6462',
+        'http://cewyuwxq:8erdzea2m635@198.105.121.200:6641',
         'http://cewyuwxq:8erdzea2m635@209.127.138.10:5784',
         'http://cewyuwxq:8erdzea2m635@38.154.185.97:6370',
         'http://cewyuwxq:8erdzea2m635@84.247.60.125:6095',
         'http://cewyuwxq:8erdzea2m635@142.111.67.146:5611',
         'http://cewyuwxq:8erdzea2m635@191.96.254.138:6185',
-        'http://cewyuwxq:8erdzea2m635@31.58.9.4:6077',
-        'http://cewyuwxq:8erdzea2m635@104.239.107.47:5699'
+        'http://cewyuwxq:8erdzea2m635@104.239.107.47:5699',
+        'http://cewyuwxq:8erdzea2m635@23.229.19.94:8689'
     ];
     
     const MAX_BOTS = PROXIES.length; // Set absolute cap to 10 bots
