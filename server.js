@@ -223,12 +223,12 @@
     });
 })();
 (async () => {
-    const { fork } = await import(\"child_process\");
-    const { WebSocketServer } = await import(\"ws\");
-    const { pack, unpack } = await import(\"msgpackr\");
-    const http = await import(\"http\");
+    const { fork } = await import("child_process");
+    const { WebSocketServer } = await import("ws");
+    const { pack, unpack } = await import("msgpackr");
+    const http = await import("http");
 
-    // 1. Integrated your 10 Webshare Proxies
+    // 1. Your 10 Webshare Proxies loaded in
     const PROXIES = [
         'http://cewyuwxq:8erdzea2m635@38.154.203.95:5863',
         'http://cewyuwxq:8erdzea2m635@198.105.121.200:6462',
@@ -242,9 +242,7 @@
         'http://cewyuwxq:8erdzea2m635@104.239.107.47:5699'
     ];
     
-    // Set absolute cap based on your available proxies
-    const MAX_BOTS = PROXIES.length; 
-
+    const MAX_BOTS = PROXIES.length; // Set absolute cap to 10 bots
     const prod = false;
 
     // HTTP SERVER
@@ -280,92 +278,142 @@
                     worker.send(msg);
                 }
             } catch (e) {
-                console.error(e);
+                console.error('Failed to send to worker:', e);
+            }
+        }
+
+        function removeWorker(dead) {
+            workers = workers.filter(w => w !== dead && w.connected);
+        }
+
+        function packet(...args) {
+            ws.send(pack(args));
+        }
+
+        function close() {
+            ws.close();
+            for (const worker of workers) {
+                sendToWorker(worker, { type: "destroy" });
             }
         }
 
         ws.on("message", (msg) => {
             try {
                 const data = unpack(msg);
-                const type = data.type;
-                delete data.type;
-
-                if (type == "verify") {
-                    verified = true;
-                    return;
-                }
+                const type = data.shift();
 
                 switch (type) {
-                    case "spawn":
-                        // 2. Limit check: Stop spawning if we hit the limit of 10 bots
-                        if (workers.length >= MAX_BOTS) {
-                            console.log(`[Limit Reach] Maximum limit of ${MAX_BOTS} bots reached. Cannot spawn more.`);
-                            break;
+                    case "M":
+                        if (challenge || data[0] != 72011) {
+                            close();
                         }
 
-                        // 3. Sequential rotation: Ensure each bot gets its own unique proxy from your list
-                        const assignedProxy = PROXIES[proxyIdx];
-                        proxyIdx = (proxyIdx + 1) % PROXIES.length; // Increments and resets back to 0 after proxy #10
-
-                        console.log(`[Proxy Allocator] Spawning Bot #${workers.length + 1} using proxy IP: ${assignedProxy.split('@')[1]}`);
-
-                        const worker = fork("index.js", [
-                            "--config",
-                            JSON.stringify({
-                                server: data.server,
-                                name: data.name,
-                                proxy: {
-                                    type: "http",
-                                    url: assignedProxy
-                                }
-                            })
-                        ]);
-
-                        worker.on("message", (msg) => {
-                            if (msg.type == "close") {
-                                workers = workers.filter(w => w !== worker);
-                            }
-                        });
-
-                        worker.on("exit", () => {
-                            workers = workers.filter(w => w !== worker);
-                        });
-
-                        workers.push(worker);
+                        challenge = randint(0b1000000000, 0b1111111111);
+                        packet("M", challenge);
                         break;
                         
-                    case "despawn":
-                        const popped = workers.pop();
-                        if (popped) {
-                            sendToWorker(popped, { type: "destroy" });
+                    case "C":
+                        if (data[0] == (challenge ^ 845)) {
+                            verified = true;
+                            console.log(addr, "verified");
+                        } else {
+                            close();
+                            console.log(addr, "true noob")
                         }
                         break;
 
-                    case "tank":
-                        tank = data.tank;
-                        for (const worker of workers) {
-                            sendToWorker(worker, { type: "tankselect", tank });
-                        }
-                        break;
+                    case "Z":
+                        tank = data[0];
+                        if (tank instanceof Array) {
+                            tanks = tank;
+                            tankIdx = 0;
 
-                    case "tanks":
-                        tanks = data.tanks;
-                        break;
+                            for (const worker of workers) {
+                                tank = tanks[tankIdx];
+                                sendToWorker(worker, { type: "tankselect", tank });
 
-                    case "K":
-                        if (verified) {
-                            const key = data[0];
-                            if (key === "m") {
-                                const t = tanks[tankIdx];
-                                tankIdx = (tankIdx + 1) % tanks.length;
-                                for (const worker of workers) {
-                                    sendToWorker(worker, { type: "tankselect", tank: t });
-                                }
-                            } else {
-                                for (const worker of workers) {
-                                    sendToWorker(worker, { type: "keypress", key });
+                                tankIdx++;
+                                if (tankIdx >= tanks.length) {
+                                    tankIdx = 0;
                                 }
                             }
+                        } else {
+                            tanks = [];
+                            for (const worker of workers) {
+                                sendToWorker(worker, { type: "tankselect", tank })
+                            }
+                        }
+                        break;
+
+                    case "F": // This handles spawning a bot
+                        if (verified) {
+                            // 2. Strict Limit Check
+                            if (workers.length >= MAX_BOTS) {
+                                console.log(`[Limit] Maximum cap of ${MAX_BOTS} bots reached! Spawning blocked.`);
+                                break;
+                            }
+
+                            // 3. Dynamic Proxy Rotation
+                            if (proxyIdx >= PROXIES.length) {
+                                proxyIdx = 0;
+                            }
+                            const currentProxy = PROXIES[proxyIdx];
+                            console.log("connecting with proxy", currentProxy);
+
+                            const worker = fork("index.js", []);
+                            workers.push(worker);
+
+                            worker.on('exit', (code, signal) => {
+                                console.log('worker exited', code, signal);
+                                removeWorker(worker);
+                            });
+                            worker.on('error', (err) => {
+                                console.error('worker error', err);
+                                removeWorker(worker);
+                            });
+
+                            if (tanks.length) {
+                                sendToWorker(worker, { type: "tankselect", tank: tanks[tankIdx] });
+                                tankIdx++;
+                                if (tankIdx >= tanks.length) {
+                                    tankIdx = 0;
+                                }
+                            } else {
+                                sendToWorker(worker, { type: "tankselect", tank });
+                            }
+
+                            sendToWorker(worker, { type: "start", config: {
+                                id: workers.length, // Uses updated sequential worker id
+                                proxy: {
+                                    type: "http",
+                                    url: currentProxy
+                                },
+                                hash: "#" + data[0],
+                                name: "discord.gg/ugNk5GDCja",
+                                stats: [0, 0, 0, 0, 0, 0, 0, 9],
+                                type: "follow",
+                                token: "follow-8fe6ca",
+                                autoFire: false,
+                                autoRespawn: true,
+                                keys: [],
+                                keysHold: [],
+                                tank: "Auto4",
+                                chatSpam: "",
+                                squadId: data[0],
+                                reconnectAttempts: 3,
+                                reconnectDelay: 15000,
+                            }});
+
+                            proxyIdx++; // Move index up for next spawn command
+                        }
+                        break;
+
+                    case "B":
+                        if (verified) {
+                            for (const worker of workers) {
+                                worker.send({ type: "destroy" });
+                            }
+                            workers = [];
                         }
                         break;
                         
@@ -401,7 +449,6 @@
             for (const worker of workers) {
                 sendToWorker(worker, { type: "destroy" });
             }
-
             console.log(addr, "disconnected");
         });
     });
