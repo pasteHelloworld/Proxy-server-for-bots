@@ -227,6 +227,7 @@
     const { WebSocketServer } = await import("ws");
     const { pack, unpack } = await import("msgpackr");
     const http = await import("http");
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
     // 1. Your 10 Webshare Proxies loaded in
     const PROXIES = [
