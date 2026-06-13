@@ -6,16 +6,21 @@
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
     const PROXIES = [
-        'http://cewyuwxq:8erdzea2m635@38.154.203.95:5863',
-        'http://cewyuwxq:8erdzea2m635@64.137.96.74:6462',
-        'http://cewyuwxq:8erdzea2m635@198.105.121.200:6641',
-        'http://cewyuwxq:8erdzea2m635@209.127.138.10:5784',
-        'http://cewyuwxq:8erdzea2m635@38.154.185.97:6370',
-        'http://cewyuwxq:8erdzea2m635@84.247.60.125:6095',
-        'http://cewyuwxq:8erdzea2m635@142.111.67.146:5611',
-        'http://cewyuwxq:8erdzea2m635@191.96.254.138:6185',
-        'http://cewyuwxq:8erdzea2m635@104.239.107.47:5699',
-        'http://cewyuwxq:8erdzea2m635@23.229.19.94:8689'
+        'socks5://72.195.34.35:27360',
+        'socks5://184.178.172.5:15303',
+        'socks5://72.195.34.41:4145',
+        'socks5://174.75.211.193:4145',
+        'socks5://67.201.33.10:25283',
+        'socks5://121.169.46.116:1090',
+        'socks5://5.255.117.127:1080',
+        'socks5://5.255.113.177:1080',
+        'socks5://149.62.186.244:1080',
+        'socks5://5.255.99.75:1080',
+        'socks5://206.123.156.220:7080',
+        'socks5://206.123.156.212:5483',
+        'socks5://206.123.156.233:6157',
+        'socks5://195.19.48.233:1080',
+        'socks5://206.123.156.210:4606'
     ];
 
     const MAX_BOTS = PROXIES.length;
@@ -147,7 +152,7 @@
                             sendToWorker(worker, { type: "start", config: {
                                 id: workers.length,
                                 proxy: {
-                                    type: "http",
+                                    type: "socks5",
                                     url: currentProxy
                                 },
                                 hash: "#" + data[0],
